@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-package:
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: brew install opus ripgrep
+
+      - name: Validate scripts and metadata
+        run: |
+          zsh -n scripts/*.sh Tools/AudioLab/*.sh
+          sh -n App/agent-remote-event
+          plutil -lint App/Info.plist Driver/Info.plist
+          python3 -m py_compile Tools/AudioLab/*.py
+          Tools/AudioLab/build-sonic-library.sh
+          Tests/Integration/agent-event-helper.sh
+          git diff --check
+
+      - name: Reject private local paths and credentials
+        run: |
+          private_paths="$(rg -n '/Users/[[:alnum:]_.-]+[/]|\.codex[/]attachments' \
+            --glob '!.git/**' --glob '!.build/**' --glob '!dist/**' . | \
+            rg -v '/Users/(example|me)/' || true)"
+          if [[ -n "$private_paths" ]]; then
+            printf '%s\n' "$private_paths"
+            echo "Private local path data was found."
+            exit 1
+          fi
+          if rg -l 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}' \
+              --glob '!.git/**' --glob '!.build/**' --glob '!dist/**' .; then
+            echo "Private local data or a credential-like value was found."
+            exit 1
+          fi
+
+      - name: Run Swift tests
+        env:
+          SWIFTPM_MODULECACHE_OVERRIDE: ${{ github.workspace }}/.build/ModuleCache
+          CLANG_MODULE_CACHE_PATH: ${{ github.workspace }}/.build/ModuleCache
+        run: |
+          swift test --disable-sandbox --scratch-path .build \
+            -Xswiftc -module-cache-path \
+            -Xswiftc .build/ModuleCache
+
+      - name: Cross-compile application source
+        env:
+          SWIFTPM_MODULECACHE_OVERRIDE: ${{ github.workspace }}/.build-cross/ModuleCache
+          CLANG_MODULE_CACHE_PATH: ${{ github.workspace }}/.build-cross/ModuleCache
+        run: |
+          swift build --disable-sandbox --scratch-path .build-cross -c release \
+            --arch arm64 --arch x86_64 \
+            -Xswiftc -module-cache-path \
+            -Xswiftc .build-cross/ModuleCache
+          lipo -archs .build-cross/apple/Products/Release/DualSenseBridge | \
+            grep -q 'x86_64 arm64\|arm64 x86_64'
+
+      - name: Package native app
+        run: |
+          AGENT_REMOTE_BUILD_ARCH="$(uname -m)" ./scripts/package-app.sh
+          codesign --verify --deep --strict --verbose=2 "dist/Agent Remote.app"
+          lipo "dist/Agent Remote.app/Contents/MacOS/DualSenseBridge" \
+            -verify_arch "$(uname -m)"
+          lipo "dist/Agent Remote.app/Contents/Frameworks/libopus.0.dylib" \
+            -verify_arch "$(uname -m)"
+          test -f "dist/Agent Remote.app/Contents/Resources/Opus-LICENSE.txt"
+          test -f "dist/Agent Remote.app/Contents/Resources/THIRD-PARTY-NOTICES.txt"
+          test -f "dist/Agent Remote.app/Contents/Resources/PRIVACY.txt"

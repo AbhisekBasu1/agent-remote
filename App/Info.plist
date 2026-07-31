@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleDisplayName</key>
+    <string>Agent Remote</string>
+    <key>CFBundleExecutable</key>
+    <string>DualSenseBridge</string>
+    <key>CFBundleIdentifier</key>
+    <string>io.github.abhisekbasu1.AgentRemote</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>Agent Remote</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>GCDisableInferringGameMetadata</key>
+    <true/>
+    <key>GCSupportsControllerUserInteraction</key>
+    <false/>
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+    <key>LSMultipleInstancesProhibited</key>
+    <true/>
+    <key>LSSupportsGameMode</key>
+    <false/>
+    <key>LSUIElement</key>
+    <true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Agent Remote uses Bluetooth to receive input from your connected PlayStation controller.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Agent Remote uses automation to focus the Ghostty terminal that hosts the selected agent session.</string>
+	<key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+</dict>
+</plist>

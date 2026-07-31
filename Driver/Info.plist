@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>DualSenseBridgeMic</string>
+    <key>CFBundleIdentifier</key>
+    <string>io.github.abhisekbasu1.AgentRemote.MicrophoneDriver</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>DualSense Bridge Mic</string>
+    <key>CFBundlePackageType</key>
+    <string>BNDL</string>
+    <key>CFBundleShortVersionString</key>
+	<string>1.1</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+    <key>CFBundleSupportedPlatforms</key>
+    <array>
+        <string>MacOSX</string>
+    </array>
+    <key>CFBundleVersion</key>
+	<string>2</string>
+    <key>CFPlugInFactories</key>
+    <dict>
+        <key>96D665B4-BED6-40FB-BB10-B7B9DAF58861</key>
+        <string>NullAudio_Create</string>
+    </dict>
+    <key>CFPlugInTypes</key>
+    <dict>
+        <key>443ABAB8-E7B3-491A-B985-BEB9187030DB</key>
+        <array>
+            <string>96D665B4-BED6-40FB-BB10-B7B9DAF58861</string>
+        </array>
+    </dict>
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Agent Remote contributors; based on Apple NullAudio sample code.</string>
+</dict>
+</plist>

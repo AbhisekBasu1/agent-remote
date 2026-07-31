@@ -1,0 +1,53 @@
+# Swift Package Manager and Xcode build products
+.build/
+.build-cross/
+.swiftpm/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+
+# Packaged application output
+dist/
+
+# Local code-signing identity and keychain
+.local-signing/
+
+# Python tooling caches and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editor and operating-system metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+.idea/
+.vscode/
+*.swp
+*~
+
+# Local diagnostics and temporary files
+*.log
+*.tmp
+
+# Private recordings, transcripts, credentials, and release archives
+*.wav
+*.aif
+*.aiff
+*.caf
+*.pcm
+*.raw
+*.jsonl
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key
+*.mobileprovision
+*.dmg
+*.pkg
+*.zip
+*.sha256

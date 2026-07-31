@@ -1,0 +1,55 @@
+#!/bin/sh
+umask 077
+# Agent Remote event helper.
+#
+#   agent-remote-event <working|attention|done|error|idle> [source]
+#   agent-remote-event codex-notify '<json payload>'
+#
+# Writes one spool file that the Agent Remote menu bar app consumes to drive
+# the DualSense lightbar and haptic alerts. Always exits 0: a feedback
+# problem must never fail the agent hook that invoked it.
+
+EVENT="$1"
+[ -n "$EVENT" ] || exit 0
+
+if [ "$EVENT" = "codex-notify" ]; then
+  SOURCE="codex"
+  # Codex sends a JSON notification argument that can contain prompt or
+  # response text. Reduce it to the only two event types this app needs before
+  # anything is written to disk.
+  LOWERED=$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')
+  case "$LOWERED" in
+    *agent-turn-complete*) EVENT="done" ;;
+    *approval*) EVENT="attention" ;;
+    *) exit 0 ;;
+  esac
+else
+  SOURCE="${2:-hook}"
+fi
+
+case "$EVENT" in
+  working|attention|done|error|idle) ;;
+  *) exit 0 ;;
+esac
+
+# Source is a short diagnostic label, not free-form content. Restricting it
+# prevents callers from injecting extra spool fields or persisting private
+# text by mistake.
+SOURCE=$(printf '%s' "$SOURCE" | LC_ALL=C tr -cd 'A-Za-z0-9._-' | cut -c1-64)
+[ -n "$SOURCE" ] || SOURCE="hook"
+
+SPOOL="$HOME/Library/Application Support/DualSenseBridge/agent-events"
+mkdir -p "$SPOOL" 2>/dev/null || exit 0
+chmod 700 "$SPOOL" 2>/dev/null || exit 0
+
+TMP=$(mktemp "$SPOOL/.agent-event.XXXXXX" 2>/dev/null) || exit 0
+{
+  printf 'event=%s\n' "$EVENT"
+  printf 'source=%s\n' "$SOURCE"
+  printf 'ts=%s\n' "$(date +%s)"
+} > "$TMP" 2>/dev/null || { rm -f "$TMP"; exit 0; }
+
+# Renaming inside the spool is atomic, so the watcher never sees a partial
+# file. The leading dot keeps the in-progress file hidden from the watcher.
+mv "$TMP" "$SPOOL/evt-${TMP##*/.agent-event.}" 2>/dev/null || rm -f "$TMP"
+exit 0
