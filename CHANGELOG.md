@@ -32,5 +32,6 @@ All notable user-facing changes will be documented here.
 
 ### Fixed
 
-- Raw controller HID sessions now close before macOS sleeps and reopen after
-  wake, preventing a USB-connected DualSense from immediately waking the Mac.
+- Agent Remote now releases its raw controller transports before sleep and
+  briefly lets the native HID handoff settle before sleep proceeds, preventing
+  a USB-connected DualSense from immediately waking the Mac again.

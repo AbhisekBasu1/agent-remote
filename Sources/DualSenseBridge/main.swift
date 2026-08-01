@@ -50,7 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         audioInputManager: audioInputManager,
         agentFeedback: agentFeedback
     )
-    private var systemPowerObservers: [NSObjectProtocol] = []
+    private let systemPowerMonitor = SystemPowerMonitor()
     private var controllerInputIsSuspendedForSystemSleep = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -162,42 +162,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startMonitoringSystemPower() {
-        guard systemPowerObservers.isEmpty else { return }
-        let center = NSWorkspace.shared.notificationCenter
-        systemPowerObservers.append(center.addObserver(
-            forName: NSWorkspace.willSleepNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
+        systemPowerMonitor.onWillSleep = { [weak self] in
             self?.suspendControllerInputForSystemSleep()
-        })
-        systemPowerObservers.append(center.addObserver(
-            forName: NSWorkspace.didWakeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
+        }
+        systemPowerMonitor.onDidWake = { [weak self] in
             self?.resumeControllerInputAfterSystemWake()
-        })
+        }
+        systemPowerMonitor.start()
     }
 
     private func stopMonitoringSystemPower() {
-        let center = NSWorkspace.shared.notificationCenter
-        for observer in systemPowerObservers {
-            center.removeObserver(observer)
-        }
-        systemPowerObservers.removeAll()
+        systemPowerMonitor.stop()
+        systemPowerMonitor.onWillSleep = nil
+        systemPowerMonitor.onDidWake = nil
     }
 
-    /// A seized USB DualSense sends input reports roughly 250 times a second.
-    /// Keeping its IOHID user client open during sleep lets those reports
-    /// register as HID activity and immediately wake the Mac. Release all
-    /// synthetic input and close both raw transports before power-down; they
-    /// are recreated after wake so the controller keeps working normally.
+    /// Release every synthetic input and raw HID transport before sleep. The
+    /// power monitor briefly delays its IOKit acknowledgement so the native
+    /// HID handoff event occurs while the Mac is still awake.
     private func suspendControllerInputForSystemSleep() {
         guard !controllerInputIsSuspendedForSystemSleep else { return }
         controllerInputIsSuspendedForSystemSleep = true
         DiagnosticLog.write(
-            "system will sleep; releasing controller input and closing raw HID transports"
+            "system will sleep; releasing controller input and raw HID transports"
         )
         bridge.stop()
         usbInputMonitor.stop()
@@ -208,7 +195,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard controllerInputIsSuspendedForSystemSleep else { return }
         controllerInputIsSuspendedForSystemSleep = false
         DiagnosticLog.write(
-            "system did wake; reopening raw HID transports and controller input"
+            "system did wake; restoring raw HID transports and controller input"
         )
         bluetoothEnhancedModeEnabler.start()
         usbInputMonitor.start()
