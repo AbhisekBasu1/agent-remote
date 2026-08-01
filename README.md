@@ -1,5 +1,7 @@
 # Agent Remote
 
+![Agent Remote controlling Codex, Claude Code, and other coding agents with a DualSense controller](docs/images/agent-remote-banner.png)
+
 Agent Remote turns a Sony DualSense controller into a physical remote control
 for coding agents on macOS — Codex CLI, Claude Code, or anything that can run
 a shell hook. It is a small, native, local-only menu-bar app.
