@@ -29,3 +29,8 @@ All notable user-facing changes will be documented here.
 - App and driver bundle identifiers now use the project's GitHub namespace.
   Existing preferences from the pre-release local identifier migrate once;
   macOS may ask for Accessibility approval again after the identifier change.
+
+### Fixed
+
+- Raw controller HID sessions now close before macOS sleeps and reopen after
+  wake, preventing a USB-connected DualSense from immediately waking the Mac.

@@ -50,6 +50,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         audioInputManager: audioInputManager,
         agentFeedback: agentFeedback
     )
+    private var systemPowerObservers: [NSObjectProtocol] = []
+    private var controllerInputIsSuspendedForSystemSleep = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         DiagnosticLog.beginSession()
@@ -136,6 +138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        startMonitoringSystemPower()
         bridge.start()
         agentEventMonitor.start()
         if settings.agentPassiveWatchingEnabled {
@@ -147,6 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        stopMonitoringSystemPower()
         agentSessionLogWatcher.stop()
         agentEventMonitor.stop()
         sessionIndicators.shutdown()
@@ -155,6 +159,60 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         bridge.stop()
         usbInputMonitor.stop()
         bluetoothEnhancedModeEnabler.stop()
+    }
+
+    private func startMonitoringSystemPower() {
+        guard systemPowerObservers.isEmpty else { return }
+        let center = NSWorkspace.shared.notificationCenter
+        systemPowerObservers.append(center.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.suspendControllerInputForSystemSleep()
+        })
+        systemPowerObservers.append(center.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.resumeControllerInputAfterSystemWake()
+        })
+    }
+
+    private func stopMonitoringSystemPower() {
+        let center = NSWorkspace.shared.notificationCenter
+        for observer in systemPowerObservers {
+            center.removeObserver(observer)
+        }
+        systemPowerObservers.removeAll()
+    }
+
+    /// A seized USB DualSense sends input reports roughly 250 times a second.
+    /// Keeping its IOHID user client open during sleep lets those reports
+    /// register as HID activity and immediately wake the Mac. Release all
+    /// synthetic input and close both raw transports before power-down; they
+    /// are recreated after wake so the controller keeps working normally.
+    private func suspendControllerInputForSystemSleep() {
+        guard !controllerInputIsSuspendedForSystemSleep else { return }
+        controllerInputIsSuspendedForSystemSleep = true
+        DiagnosticLog.write(
+            "system will sleep; releasing controller input and closing raw HID transports"
+        )
+        bridge.stop()
+        usbInputMonitor.stop()
+        bluetoothEnhancedModeEnabler.stop()
+    }
+
+    private func resumeControllerInputAfterSystemWake() {
+        guard controllerInputIsSuspendedForSystemSleep else { return }
+        controllerInputIsSuspendedForSystemSleep = false
+        DiagnosticLog.write(
+            "system did wake; reopening raw HID transports and controller input"
+        )
+        bluetoothEnhancedModeEnabler.start()
+        usbInputMonitor.start()
+        bridge.start()
     }
 
     private func renderSessionsList() {
